@@ -213,6 +213,7 @@ timestamps <-
 
 timestamps %>%
   mutate(ora_inserimento = ora_inserimento %>% as_datetime()) %>% 
+  mutate(ora_inserimento = ora_inserimento + hours(2)) %>% 
   mutate(ora_inserimento = ora_inserimento %>% floor_date(unit = "5 minutes")) %>% 
   rowwise() %>% 
   mutate(n_auto = sum(auto_su_careggiata, auto_su_marciapiede, auto_su_verde, na.rm = T)) %>% 
@@ -229,9 +230,15 @@ timestamps %>%
        y = "Conteggi inseriti",
        fill = "Auto contate") +
   scale_y_continuous(expand = expansion(mult = c(0, .02))) +
-  scale_fill_viridis_c(direction = -1,
-                       option = "D",
-                       trans = scales::sqrt_trans()) +
+  scale_fill_viridis_c(
+    direction = -1,
+    option = "D",
+    trans = scales::sqrt_trans(),
+    breaks = c(1, 100, 200, 300, 400),
+    guide = guide_legend(
+      override.aes = list(size = 4)
+    )
+  ) +
   theme(
     axis.line.x = element_line(
       linewidth = line_size
@@ -251,7 +258,7 @@ timestamps %>%
     legend.text = element_text(size = font_size),
     legend.title = element_text(size = font_size),
     legend.position = "bottom",
-    legend.key.width = unit(3, "cm"),
+    legend.key.width = unit(1, "cm"),
     legend.key.height = unit(.2, "cm"),
   )
   

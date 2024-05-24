@@ -1,5 +1,7 @@
 library(tidyverse)
 library(ggbeeswarm)
+library(svglite)
+library(readxl)
 
 theme_set(theme_minimal())
 
@@ -65,13 +67,15 @@ municipi_ordered <-
     .by = municipio
   )
 
-municipi_ordered <- %>% 
-  arrange(desc(n))
+# municipi_ordered <- %>% 
+#   arrange(desc(n))
 
 
 line_size <- .6
 font_size <- 14
-d_long %>% 
+
+p_tot <- 
+  d_long %>% 
   summarise(
     n = n %>% sum(na.rm = T),
     length_km = lenght_km %>% sum(na.rm = T),
@@ -82,9 +86,9 @@ d_long %>%
       y = municipio %>%
         as.factor() %>% 
         fct_rev(),
-        # factor(
-        #   levels = municipi_ordered$municipio
-        # ) %>% 
+      # factor(
+      #   levels = municipi_ordered$municipio
+      # ) %>% 
         # fct_rev(),
       fill = posizione %>% 
         factor(
@@ -132,8 +136,13 @@ d_long %>%
     legend.title = element_text(size = font_size),
     legend.position = "bottom"
   )
+
+ggsave(filename = "tot-macchine.svg", 
+       plot = p_tot, height = 8, width = 8)
    
-d_long %>% 
+
+p_by_km <- 
+  d_long %>% 
   summarise(
     n = n %>% sum(na.rm = T),
     length_km = lenght_km %>% sum(na.rm = T),
@@ -194,5 +203,55 @@ d_long %>%
     legend.position = "bottom"
   )
    
+ggsave(filename = "macchine-per-km.svg", 
+       plot = p_by_km, height = 8, width = 8)
 
 
+timestamps <- 
+  read_excel("data/via libera personal copy.xlsx")%>% 
+  janitor::clean_names() 
+
+timestamps %>%
+  mutate(ora_inserimento = ora_inserimento %>% as_datetime()) %>% 
+  mutate(ora_inserimento = ora_inserimento %>% floor_date(unit = "5 minutes")) %>% 
+  rowwise() %>% 
+  mutate(n_auto = sum(auto_su_careggiata, auto_su_marciapiede, auto_su_verde, na.rm = T)) %>% 
+  ungroup() %>% 
+  arrange(desc(n_auto)) %>% 
+  mutate(n = 1:n(), .by = ora_inserimento) %>% # view()
+  ggplot() +
+  aes(x = ora_inserimento, y = n, fill = n_auto) +
+  geom_point(
+    shape = 21,
+    # fill = "#00FF0A"
+    ) +
+  labs(x = "Orario inserimento conteggio auto",
+       y = "Conteggi inseriti",
+       fill = "Auto contate") +
+  scale_y_continuous(expand = expansion(mult = c(0, .02))) +
+  scale_fill_viridis_c(direction = -1,
+                       option = "D",
+                       trans = scales::sqrt_trans()) +
+  theme(
+    axis.line.x = element_line(
+      linewidth = line_size
+    ),
+    axis.title = element_text(size = font_size,
+                              hjust = 1),
+    axis.text = element_text(size = font_size),
+    axis.ticks = element_line(
+      linewidth = line_size
+    ),
+    panel.grid.minor = element_blank(),
+    panel.grid.major = element_line(
+      linewidth = line_size/2,
+      colour = "black",
+      linetype = "11"
+    ),
+    legend.text = element_text(size = font_size),
+    legend.title = element_text(size = font_size),
+    legend.position = "bottom",
+    legend.key.width = unit(3, "cm"),
+    legend.key.height = unit(.2, "cm"),
+  )
+  

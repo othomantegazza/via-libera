@@ -3,7 +3,7 @@ library(ggbeeswarm)
 library(svglite)
 library(readxl)
 
-theme_set(theme_minimal())
+source("setup-viz.R")
 
 dat <-
   read_csv(
@@ -11,6 +11,11 @@ dat <-
   ) %>% 
   janitor::clean_names()
 
+dat_timestamps <- 
+  read_csv(
+    "data/Via Libera_Per Otho.xlsx - Final.csv"
+  ) %>% 
+  janitor::clean_names()
 
 d_long <- 
   dat %>% 
@@ -65,14 +70,12 @@ municipi_ordered <-
     n = n %>% sum(na.rm = T),
     length_km = lenght_km %>% sum(na.rm = T),
     .by = municipio
-  )
+  ) %>% 
+  mutate(n_by_km = n/length_km) %>% 
+  arrange(n_by_km)
 
 # municipi_ordered <- %>% 
 #   arrange(desc(n))
-
-
-line_size <- .6
-font_size <- 14
 
 p_tot <- 
   d_long %>% 
@@ -152,10 +155,9 @@ p_by_km <-
   aes(x = n/length_km,
       y = municipio %>% 
         as.factor() %>% 
-        # factor(
-        #   levels = municipi_ordered$municipio
-        # ) %>% 
-        fct_rev(),
+        factor(
+          levels = municipi_ordered$municipio
+        ),
       fill = posizione %>% 
         factor(
           levels = c("carreggiata", "marciapiede", "verde")
@@ -211,19 +213,48 @@ timestamps <-
   read_excel("data/via libera personal copy.xlsx")%>% 
   janitor::clean_names() 
 
-timestamps %>%
-  mutate(ora_inserimento = ora_inserimento %>% as_datetime()) %>% 
-  mutate(ora_inserimento = ora_inserimento + hours(2)) %>% 
-  mutate(ora_inserimento = ora_inserimento %>% floor_date(unit = "5 minutes")) %>% 
+# timestamps %>%
+  # mutate(ora_inserimento = ora_inserimento %>% as_datetime()) %>% 
+  # mutate(ora_inserimento = ora_inserimento + hours(2)) %>% 
+  # mutate(ora_inserimento = ora_inserimento %>% floor_date(unit = "5 minutes")) %>% 
+# rowwise() %>% 
+#   mutate(
+#     n_auto = sum(
+#       auto_su_careggiata,
+#       auto_su_marciapiede,
+#       auto_su_verde,
+#       na.rm = T
+#     )
+#   ) %>% 
+p_timestamps <- 
+  dat_timestamps %>% 
+  mutate(datetime = time %>% as_datetime()) %>% 
+  filter(hour(time) > 16 | hour(time) < 6) %>% 
+  # mutate(time = hour(time)) %>% view()
+  mutate(
+    datetime = case_when(
+      hour(time) < 15 ~ datetime + days(1),
+      TRUE ~ datetime
+    )
+  ) %>% 
+  mutate(datetime = datetime %>% floor_date(unit = "5 minutes")) %>% 
   rowwise() %>% 
-  mutate(n_auto = sum(auto_su_careggiata, auto_su_marciapiede, auto_su_verde, na.rm = T)) %>% 
+  mutate(
+    n_auto = sum(
+      max_of_auto_su_careggiata,
+      max_of_auto_su_marciapiede,
+      max_of_auto_su_verde,
+      na.rm = T
+    )
+  ) %>% # view()
   ungroup() %>% 
   arrange(desc(n_auto)) %>% 
-  mutate(n = 1:n(), .by = ora_inserimento) %>% # view()
+  mutate(n = 1:n(), .by = datetime) %>% # view()
   ggplot() +
-  aes(x = ora_inserimento, y = n, fill = n_auto) +
+  aes(x = datetime, y = n, fill = n_auto) +
   geom_point(
     shape = 21,
+    size = 1.6
     # fill = "#00FF0A"
     ) +
   labs(x = "Orario inserimento conteggio auto",
@@ -261,4 +292,11 @@ timestamps %>%
     legend.key.width = unit(1, "cm"),
     legend.key.height = unit(.2, "cm"),
   )
+
+ggsave(
+  filename = "p_timestamps.svg",
+  plot = p_timestamps,
+  height = 8, width = 8
+)
+
   

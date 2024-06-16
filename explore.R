@@ -1,21 +1,18 @@
 library(tidyverse)
-library(ggbeeswarm)
 library(svglite)
 library(readxl)
+library(janitor)
 
 source("setup-viz.R")
 
-dat <-
-  read_csv(
-    "data/VIA LIBERA!!!_Max.xlsx - VIA LIBERA_municipi.csv"
-  ) %>% 
-  janitor::clean_names()
+# read and clean the data ---------------------------------------
 
-dat_timestamps <- 
-  read_csv(
-    "data/Via Libera_Per Otho.xlsx - Final.csv"
+dat <- 
+  read_excel(
+    "data/VIA LIBERA!!!_Max.xlsx",
+    sheet = "VIA LIBERA_municipi"
   ) %>% 
-  janitor::clean_names()
+  clean_names()
 
 d_long <- 
   dat %>% 
@@ -37,8 +34,6 @@ d_long <-
   )
 
 d_long %>% 
-  filter(n_per_km > 0,
-         n_per_km < 1000) %>% 
   ggplot() +
   aes(x = n_per_km,
       y = posizione,
@@ -47,21 +42,6 @@ d_long %>%
     shape = 0,
     width = 0,
     height = .3
-  )
-  # geom_quasirandom(
-  #   shape = 1
-  # )
-
-d_long %>% 
-  uncount(n) %>% 
-  filter(n_per_km > 0,
-         n_per_km < 1000) %>%
-  ggplot() +
-  aes(x = n_per_km,
-      fill = posizione) +
-  geom_histogram(
-    binwidth = 10,
-    colour = "black"
   )
 
 municipi_ordered <- 
@@ -74,8 +54,49 @@ municipi_ordered <-
   mutate(n_by_km = n/length_km) %>% 
   arrange(n_by_km)
 
-# municipi_ordered <- %>% 
-#   arrange(desc(n))
+# common part of the plot ---------------------------------------
+
+common_part <- 
+  list(
+    geom_col(
+      colour = "black",
+      size = line_size
+    ) ,
+    scale_x_continuous(
+      expand = expansion(mult = c(0, .05)),
+      position = "top"
+    ) ,
+    scale_y_discrete( 
+      labels = ~paste("Municipio", .),
+      expand = expansion(.07)
+    ) ,
+    scale_fill_viridis_d(
+      option = "A",
+      direction = -1
+    ) , 
+    theme(
+      axis.line.y = element_line(
+        linewidth = line_size
+      ),
+      axis.title = element_text(size = font_size,
+                                hjust = 1),
+      axis.text = element_text(size = font_size),
+      axis.ticks = element_line(
+        linewidth = line_size
+      ),
+      panel.grid.minor = element_blank(),
+      panel.grid.major.y = element_blank(),
+      panel.grid.major.x = element_line(
+        linewidth = line_size,
+        colour = "black",
+        linetype = "11"
+      ),
+      legend.text = element_text(size = font_size),
+      legend.title = element_text(size = font_size),
+      legend.position = "bottom"
+    )
+  )
+
 
 p_tot <- 
   d_long %>% 
@@ -85,64 +106,34 @@ p_tot <-
     .by = c(municipio, posizione) 
   ) %>% 
   ggplot() +
-  aes(x = n,
-      y = municipio %>%
-        as.factor() %>% 
-        fct_rev(),
-      # factor(
-      #   levels = municipi_ordered$municipio
-      # ) %>% 
-        # fct_rev(),
-      fill = posizione %>% 
-        factor(
-          levels = c("carreggiata", "marciapiede", "verde")
-        ) %>% 
-        fct_rev()
+  aes(
+    x = n,
+    y = municipio %>%
+      as.factor() %>% 
+      fct_rev(),
+    fill = posizione %>% 
+      factor(
+        levels = c("carreggiata", "marciapiede", "verde")
+      ) %>% 
+      fct_rev()
   ) +
-  geom_col(
-    colour = "black",
-    size = line_size
-  ) +
-  scale_x_continuous(
-    expand = expansion(mult = c(0, .05)),
-    position = "top"
-  ) +
-  scale_y_discrete( 
-    labels = ~paste("Municipio", .),
-    expand = expansion(.07)
-  ) +
-  scale_fill_viridis_d(
-    option = "A",
-    direction = -1
-    ) +
-  labs(x = "Automobili in Sosta Illegale [n]",
-       y = "",
-       fill = "Posizione:") +
-  theme(
-    axis.line.y = element_line(
-      linewidth = line_size
-    ),
-    axis.title = element_text(size = font_size,
-                              hjust = 1),
-    axis.text = element_text(size = font_size),
-    axis.ticks = element_line(
-      linewidth = line_size
-    ),
-    panel.grid.minor = element_blank(),
-    panel.grid.major.y = element_blank(),
-    panel.grid.major.x = element_line(
-      linewidth = line_size,
-      colour = "black",
-      linetype = "11"
-    ),
-    legend.text = element_text(size = font_size),
-    legend.title = element_text(size = font_size),
-    legend.position = "bottom"
-  )
+  common_part +
+  labs(
+    x = "Automobili in Sosta Illegale [n]",
+    y = "",
+    fill = "Posizione:"
+  ) 
 
-ggsave(filename = "tot-macchine.svg", 
-       plot = p_tot, height = 8, width = 8)
-   
+ggsave(filename = "viz/tot-macchine.svg", 
+       plot = p_tot, 
+       units = "cm",
+       height = 20, width = 20)
+
+ggsave(filename = "viz/tot-macchine.png", 
+       plot = p_tot, 
+       units = "cm",
+       height = 20, width = 20)
+
 
 p_by_km <- 
   d_long %>% 
@@ -164,139 +155,20 @@ p_by_km <-
         ) %>% 
         fct_rev()
   ) +
-  geom_col(
-    colour = "black",
-    size = line_size
-  ) +
-  scale_x_continuous(
-    expand = expansion(mult = c(0, .05)),
-    position = "top"
-  ) +
-  scale_y_discrete( 
-    labels = ~paste("Municipio", .),
-    expand = expansion(.07)
-  ) +
-  scale_fill_viridis_d(
-    option = "A",
-    direction = -1
-    ) +
+  common_part +
   labs(x = "Automobili in Sosta Illegale per Km di Strada [n]",
        y = "",
-       fill = "Posizione:") +
-  theme(
-    axis.line.y = element_line(
-      linewidth = line_size
-    ),
-    axis.title = element_text(size = font_size,
-                              hjust = 1),
-    axis.text = element_text(size = font_size),
-    axis.ticks = element_line(
-      linewidth = line_size
-    ),
-    panel.grid.minor = element_blank(),
-    panel.grid.major.y = element_blank(),
-    panel.grid.major.x = element_line(
-      linewidth = line_size,
-      colour = "black",
-      linetype = "11"
-    ),
-    legend.text = element_text(size = font_size),
-    legend.title = element_text(size = font_size),
-    legend.position = "bottom"
-  )
-   
-ggsave(filename = "macchine-per-km.svg", 
-       plot = p_by_km, height = 8, width = 8)
-
-
-timestamps <- 
-  read_excel("data/via libera personal copy.xlsx")%>% 
-  janitor::clean_names() 
-
-# timestamps %>%
-  # mutate(ora_inserimento = ora_inserimento %>% as_datetime()) %>% 
-  # mutate(ora_inserimento = ora_inserimento + hours(2)) %>% 
-  # mutate(ora_inserimento = ora_inserimento %>% floor_date(unit = "5 minutes")) %>% 
-# rowwise() %>% 
-#   mutate(
-#     n_auto = sum(
-#       auto_su_careggiata,
-#       auto_su_marciapiede,
-#       auto_su_verde,
-#       na.rm = T
-#     )
-#   ) %>% 
-p_timestamps <- 
-  dat_timestamps %>% 
-  mutate(datetime = time %>% as_datetime()) %>% 
-  filter(hour(time) > 16 | hour(time) < 6) %>% 
-  # mutate(time = hour(time)) %>% view()
-  mutate(
-    datetime = case_when(
-      hour(time) < 15 ~ datetime + days(1),
-      TRUE ~ datetime
-    )
-  ) %>% 
-  mutate(datetime = datetime %>% floor_date(unit = "5 minutes")) %>% 
-  rowwise() %>% 
-  mutate(
-    n_auto = sum(
-      max_of_auto_su_careggiata,
-      max_of_auto_su_marciapiede,
-      max_of_auto_su_verde,
-      na.rm = T
-    )
-  ) %>% # view()
-  ungroup() %>% 
-  arrange(desc(n_auto)) %>% 
-  mutate(n = 1:n(), .by = datetime) %>% # view()
-  ggplot() +
-  aes(x = datetime, y = n, fill = n_auto) +
-  geom_point(
-    shape = 21,
-    size = 1.6
-    # fill = "#00FF0A"
-    ) +
-  labs(x = "Orario inserimento conteggio auto",
-       y = "Conteggi inseriti",
-       fill = "Auto contate") +
-  scale_y_continuous(expand = expansion(mult = c(0, .02))) +
-  scale_fill_viridis_c(
-    direction = -1,
-    option = "D",
-    trans = scales::sqrt_trans(),
-    breaks = c(1, 100, 200, 300, 400),
-    guide = guide_legend(
-      override.aes = list(size = 4)
-    )
-  ) +
-  theme(
-    axis.line.x = element_line(
-      linewidth = line_size
-    ),
-    axis.title = element_text(size = font_size,
-                              hjust = 1),
-    axis.text = element_text(size = font_size),
-    axis.ticks = element_line(
-      linewidth = line_size
-    ),
-    panel.grid.minor = element_blank(),
-    panel.grid.major = element_line(
-      linewidth = line_size/2,
-      colour = "black",
-      linetype = "11"
-    ),
-    legend.text = element_text(size = font_size),
-    legend.title = element_text(size = font_size),
-    legend.position = "bottom",
-    legend.key.width = unit(1, "cm"),
-    legend.key.height = unit(.2, "cm"),
-  )
-
-ggsave(
-  filename = "p_timestamps.svg",
-  plot = p_timestamps,
-  height = 8, width = 8
-)
-
+       fill = "Posizione:") 
   
+   
+ggsave(filename = "viz/macchine-per-km.svg", 
+       plot = p_by_km, 
+       units = "cm",
+       height = 20, width = 20)
+
+
+ggsave(filename = "viz/macchine-per-km.png", 
+       units = "cm",
+       height = 20, width = 20)
+
+

@@ -91,12 +91,12 @@ dat_1 %>%
   slice(1:20) %>% 
   ggplot() +
   aes(
-    x = n_per_km,
+    x = n_per_km/10,
     y = nome_via %>% as_factor() %>% fct_rev()
   ) +
   common_part +
   labs(
-    x = "Automobili in Sosta Illegale per Km di Strada [n]",
+    x = "Automobili in Sosta Illegale ogni 100 metri di Strada [n]",
     y = ""
   ) +
   geom_text(

@@ -2,6 +2,7 @@ library(tidyverse)
 library(svglite)
 library(readxl)
 library(janitor)
+library(patchwork)
 
 source("setup-viz.R")
 
@@ -15,18 +16,6 @@ common_part <-
              colour = "black",
              width = 1,
              size = line_size),
-    scale_x_continuous(
-      expand = expansion(mult = c(0, .05)),
-      position = "top"
-    ) ,
-    # scale_y_discrete( 
-    #   labels = ~paste("Municipio", .),
-    #   expand = expansion(.07)
-    # ) ,
-    scale_fill_viridis_d(
-      option = "A",
-      direction = -1
-    ) , 
     theme(
       axis.line.y = element_line(
         linewidth = line_size
@@ -86,13 +75,32 @@ plot_worst_streets <- function(
     municipio,
     posizione
 ) {
+  
   browser()
   
-  data %>% 
-    filter(municipio == {{municipio}}) %>% 
-    filter(posizione == {{posizione}}) %>%
+  data <- 
+    data %>% 
+    filter(municipio == {{municipio}}) 
+  
+  max_n <- data$n %>% max(na.rm = T)
+  max_n_per_km <- data$n_per_km %>% max(na.rm = T)
+  
+  to_plot <- 
+    data %>% 
+    filter(posizione == {{posizione}}) 
+  
+  to_plot2 <- 
+    data %>% 
+    filter(posizione == "carreggiata") 
+  
+  to_plot3 <- 
+    data %>% 
+    filter(posizione == "verde") 
+  
+  p3 <-
+    to_plot3 %>% 
     arrange(desc(n_per_km)) %>% 
-    slice(1:20) %>% 
+    slice(1:15) %>% 
     ggplot() +
     aes(
       x = n_per_km/10,
@@ -103,15 +111,34 @@ plot_worst_streets <- function(
       x = "Automobili in Sosta Illegale ogni 100 metri di Strada [n]",
       y = ""
     ) +
-    geom_text(
-      aes(label = after_stat(x) %>% round()),
+    geom_label(
+      aes(
+        label = after_stat(x) %>% 
+          round() %>% 
+          as.character() %>%
+          str_pad(side = "both",
+                  width = 1),
+        hjust = after_stat(x) %>% 
+          {
+            case_when(. < max_n_per_km/100 ~ 0,
+                      TRUE ~ 1)
+          }
+        ),
       size = font_size/size_scale,
-      hjust = 1.1
-    )
+      label.size = 0,
+      label.padding = unit(.2, "lines"),
+      # hjust = 1,
+      fill = "#00000000"
+    ) +
+    scale_x_continuous(
+      expand = expansion(mult = c(0, .1)),
+      limits = c(0, max_n_per_km/10),
+      position = "top"
+    ) 
 }
 
 plot_worst_streets(
   d_long,
   1,
-  "carreggiata"
+  "marciapiede"
 )

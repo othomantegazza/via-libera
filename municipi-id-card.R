@@ -3,6 +3,7 @@ library(svglite)
 library(readxl)
 library(janitor)
 library(patchwork)
+library(glue)
 
 source("setup-viz.R")
 
@@ -22,7 +23,8 @@ common_part <-
       ),
       axis.title = element_text(size = font_size,
                                 hjust = 1),
-      axis.text = element_text(size = font_size),
+      axis.text = element_text(size = font_size,
+                               colour = "black"),
       axis.ticks = element_line(
         linewidth = line_size
       ),
@@ -98,7 +100,7 @@ plot_position <- function(data,
                   width = 1),
         hjust = after_stat(x) %>% 
           {
-            case_when(. < max_n_per_km/100 ~ 0,
+            case_when(. < max_n_per_km/70 ~ 0,
                       TRUE ~ 1)
           }
       ),
@@ -114,8 +116,11 @@ plot_position <- function(data,
       position = "top"
     ) +
     theme(
-      axis.title = element_text(size = font_size*1.3,
-                                hjust = 1)
+      axis.title = element_text(
+        size = font_size*1.3,
+        hjust = 1,
+        colour = "black"
+        )
     )
   
   return(p)
@@ -155,11 +160,23 @@ plot_worst_streets <- function(
       )
     )
   
-  return(p_out)  
+  ggsave(
+    filename = glue("viz/municipio-{municipio}-macchine-per-100-metri.png"),
+    width = 40,
+    height = 18,
+    units = "cm"
+  )
+  
+  ggsave(
+    filename = glue("viz/municipio-{municipio}-macchine-per-100-metri.svg"),
+    width = 40,
+    height = 18,
+    units = "cm"
+  )
+  
+  # return(p_out)  
 }
   
-
-plot_worst_streets(
-  d_long,
-  1
-)
+d_long %>% 
+  nest(.by = municipio) %>% 
+  pmap(plot_worst_streets)

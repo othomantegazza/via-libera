@@ -77,31 +77,41 @@ d_long <-
       str_remove("_n"),
     n_per_km = n/lenght_km
   )
-    
-dat_1 <- 
-  d_long %>% 
-  filter(municipio == 1)
 
 
 # strade peggiori -----------------------------------------------
 
-dat_1 %>% 
-  filter(posizione == "marciapiede") %>% 
-  arrange(desc(n_per_km)) %>% 
-  slice(1:20) %>% 
-  ggplot() +
-  aes(
-    x = n_per_km/10,
-    y = nome_via %>% as_factor() %>% fct_rev()
-  ) +
-  common_part +
-  labs(
-    x = "Automobili in Sosta Illegale ogni 100 metri di Strada [n]",
-    y = ""
-  ) +
-  geom_text(
-    aes(label = after_stat(x) %>% round()),
-    size = font_size/size_scale,
-    hjust = 1.1
-  )
+plot_worst_streets <- function(
+    data,
+    municipio,
+    posizione
+) {
+  browser()
+  
+  data %>% 
+    filter(municipio == {{municipio}}) %>% 
+    filter(posizione == {{posizione}}) %>%
+    arrange(desc(n_per_km)) %>% 
+    slice(1:20) %>% 
+    ggplot() +
+    aes(
+      x = n_per_km/10,
+      y = nome_via %>% as_factor() %>% fct_rev()
+    ) +
+    common_part +
+    labs(
+      x = "Automobili in Sosta Illegale ogni 100 metri di Strada [n]",
+      y = ""
+    ) +
+    geom_text(
+      aes(label = after_stat(x) %>% round()),
+      size = font_size/size_scale,
+      hjust = 1.1
+    )
+}
 
+plot_worst_streets(
+  d_long,
+  1,
+  "carreggiata"
+)

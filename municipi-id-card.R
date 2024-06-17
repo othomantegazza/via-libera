@@ -78,7 +78,7 @@ plot_position <- function(data,
   p <- 
     data %>% 
     arrange(desc(n_per_km)) %>% 
-    slice(1:15) %>% 
+    slice(1:20) %>% 
     ggplot() +
     aes(
       x = n_per_km/10,
@@ -86,7 +86,7 @@ plot_position <- function(data,
     ) +
     common_part +
     labs(
-      x = "Automobili in Sosta Illegale ogni 100 metri di Strada [n]",
+      x = paste("Automobili su", posizione),
       y = ""
     ) +
     geom_label(
@@ -112,7 +112,11 @@ plot_position <- function(data,
       expand = expansion(mult = c(0, .1)),
       limits = c(0, max_n_per_km/10),
       position = "top"
-    ) 
+    ) +
+    theme(
+      axis.title = element_text(size = font_size*1.3,
+                                hjust = 1)
+    )
   
   return(p)
 }
@@ -139,6 +143,17 @@ plot_worst_streets <- function(
     
 
   p_out <- ps[[1]] + ps[[2]] + ps[[3]]
+  
+  p_out <- 
+    p_out +
+    plot_annotation(
+      subtitle = "Automobili in Sosta Illegale ogni 100 metri di Strada [n]",
+      title = paste("Municipio", municipio),
+      theme = theme(
+        plot.title = element_text(size = font_size*2),
+        plot.subtitle = element_text(size = font_size*1.3)
+      )
+    )
   
   return(p_out)  
 }

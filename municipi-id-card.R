@@ -70,35 +70,13 @@ d_long <-
 
 # strade peggiori -----------------------------------------------
 
-plot_worst_streets <- function(
-    data,
-    municipio,
-    posizione
-) {
+
+plot_position <- function(data,
+                          posizione,
+                          max_n_per_km) {
   
-  browser()
-  
-  data <- 
+  p <- 
     data %>% 
-    filter(municipio == {{municipio}}) 
-  
-  max_n <- data$n %>% max(na.rm = T)
-  max_n_per_km <- data$n_per_km %>% max(na.rm = T)
-  
-  to_plot <- 
-    data %>% 
-    filter(posizione == {{posizione}}) 
-  
-  to_plot2 <- 
-    data %>% 
-    filter(posizione == "carreggiata") 
-  
-  to_plot3 <- 
-    data %>% 
-    filter(posizione == "verde") 
-  
-  p3 <-
-    to_plot3 %>% 
     arrange(desc(n_per_km)) %>% 
     slice(1:15) %>% 
     ggplot() +
@@ -123,7 +101,7 @@ plot_worst_streets <- function(
             case_when(. < max_n_per_km/100 ~ 0,
                       TRUE ~ 1)
           }
-        ),
+      ),
       size = font_size/size_scale,
       label.size = 0,
       label.padding = unit(.2, "lines"),
@@ -135,10 +113,38 @@ plot_worst_streets <- function(
       limits = c(0, max_n_per_km/10),
       position = "top"
     ) 
+  
+  return(p)
 }
+
+plot_worst_streets <- function(
+    data,
+    municipio
+) {
+  data <- 
+    data %>% 
+    filter(municipio == {{municipio}}) 
+  
+  max_n <- data$n %>% max(na.rm = T)
+  max_n_per_km <- data$n_per_km %>% max(na.rm = T)
+  
+  d_nested <- 
+    data %>% 
+    nest(.by = posizione) %>% 
+    mutate(max_n_per_km = max_n_per_km)
+  
+  ps <- 
+    d_nested %>% 
+    pmap(plot_position)
+    
+
+  p_out <- ps[[1]] + ps[[2]] + ps[[3]]
+  
+  return(p_out)  
+}
+  
 
 plot_worst_streets(
   d_long,
-  1,
-  "marciapiede"
+  1
 )

@@ -73,7 +73,7 @@ d_long <-
 # strade peggiori -----------------------------------------------
 
 
-plot_position <- function(data,
+plot_position_scaled <- function(data,
                           posizione,
                           max_n_per_km) {
   
@@ -126,6 +126,59 @@ plot_position <- function(data,
   return(p)
 }
 
+plot_position_raw <- function(data,
+                              posizione,
+                              max_n) {
+  
+  p <- 
+    data %>% 
+    arrange(desc(n)) %>% 
+    slice(1:20) %>%
+    ggplot() +
+    aes(
+      x = n,
+      y = nome_via %>% as.factor() %>% fct_rev()
+    ) +
+    common_part +
+    labs(
+      x = paste("Automobili su", posizione),
+      y = ""
+    ) +
+    geom_label(
+      aes(
+        label = after_stat(x) %>% 
+          round() %>% 
+          as.character() %>%
+          str_pad(side = "both",
+                  width = 1),
+        hjust = after_stat(x) %>% 
+          {
+            case_when(. < max_n/6 ~ 0,
+                      TRUE ~ 1)
+          }
+      ),
+      size = font_size/size_scale,
+      label.size = 0,
+      label.padding = unit(.2, "lines"),
+      # hjust = 1,
+      fill = "#00000000"
+    ) +
+    scale_x_continuous(
+      expand = expansion(mult = c(0, .1)),
+      limits = c(0, max_n),
+      position = "top"
+    ) +
+    theme(
+      axis.title = element_text(
+        size = font_size*1.3,
+        hjust = 1,
+        colour = "black"
+      )
+    )
+  
+  return(p)
+}
+
 plot_worst_streets <- function(
     data,
     municipio
@@ -142,15 +195,23 @@ plot_worst_streets <- function(
     nest(.by = posizione) %>% 
     mutate(max_n_per_km = max_n_per_km)
   
-  ps <- 
+  ps_scaled <- 
     d_nested %>% 
-    pmap(plot_position)
+    pmap(plot_position_scaled)
+  
+  ps_raw <- 
+    data %>% 
+    nest(.by = posizione) %>% 
+    mutate(max_n = max_n) %>%
+    pmap(plot_position_raw)
     
 
-  p_out <- ps[[1]] + ps[[2]] + ps[[3]]
+  p_out_scaled <- ps_scaled[[1]] + ps_scaled[[2]] + ps_scaled[[3]]
   
-  p_out <- 
-    p_out +
+  p_out_raw <- ps_raw[[1]] + ps_raw[[2]] + ps_raw[[3]]
+  
+  p_out_scaled <- 
+    p_out_scaled +
     plot_annotation(
       subtitle = "Automobili in Sosta Illegale ogni 100 metri di Strada [n]",
       title = paste("Municipio", municipio),
@@ -161,18 +222,48 @@ plot_worst_streets <- function(
     )
   
   ggsave(
-    filename = glue("viz/municipio-{municipio}-macchine-per-100-metri.png"),
+    filename = glue("viz/municipi-macchine-per-100m/municipio-{municipio}-macchine-per-100-metri.png"),
+    plot = p_out_scaled,
     width = 40,
     height = 18,
     units = "cm"
   )
   
   ggsave(
-    filename = glue("viz/municipio-{municipio}-macchine-per-100-metri.svg"),
+    filename = glue("viz/municipi-macchine-per-100m/municipio-{municipio}-macchine-per-100-metri.svg"),
+    plot = p_out_scaled,
     width = 40,
     height = 18,
     units = "cm"
   )
+  
+  p_out_raw <- 
+    p_out_raw +
+    plot_annotation(
+      subtitle = "Automobili in Sosta Illegale [n]",
+      title = paste("Municipio", municipio),
+      theme = theme(
+        plot.title = element_text(size = font_size*2),
+        plot.subtitle = element_text(size = font_size*1.3)
+      )
+    )
+  
+  ggsave(
+    filename = glue("viz/municipi-macchine-per-via/municipio-{municipio}-macchine-per-via.png"),
+    plot = p_out_raw,
+    width = 40,
+    height = 18,
+    units = "cm"
+  )
+  
+  ggsave(
+    filename = glue("viz/municipi-macchine-per-via/municipio-{municipio}-macchine-per-via.svg"),
+    plot = p_out_raw,
+    width = 40,
+    height = 18,
+    units = "cm"
+  )
+  
   
   # return(p_out)  
 }

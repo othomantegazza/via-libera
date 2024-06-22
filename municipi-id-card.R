@@ -7,9 +7,7 @@ library(glue)
 
 source("setup-viz.R")
 
-
 # common part ---------------------------------------------------
-
 
 common_part <- 
   list(
@@ -69,9 +67,7 @@ d_long <-
     n_per_km = n/lenght_km
   )
 
-
 # strade peggiori -----------------------------------------------
-
 
 plot_position_scaled <- function(data,
                           posizione,
@@ -97,21 +93,16 @@ plot_position_scaled <- function(data,
           round() %>% 
           as.character() %>%
           str_pad(side = "both",
-                  width = 1),
-        hjust = after_stat(x) %>% 
-          {
-            case_when(. < max_n_per_km/70 ~ 0,
-                      TRUE ~ 1)
-          }
-      ),
+                  width = 1)
+        ),
       size = font_size/size_scale,
       label.size = 0,
       label.padding = unit(.2, "lines"),
-      # hjust = 1,
+      hjust = 0,
       fill = "#00000000"
     ) +
     scale_x_continuous(
-      expand = expansion(mult = c(0, .1)),
+      expand = expansion(mult = c(0, .2)),
       limits = c(0, max_n_per_km/10),
       position = "top"
     ) +
@@ -150,17 +141,12 @@ plot_position_raw <- function(data,
           round() %>% 
           as.character() %>%
           str_pad(side = "both",
-                  width = 1),
-        hjust = after_stat(x) %>% 
-          {
-            case_when(. < max_n/6 ~ 0,
-                      TRUE ~ 1)
-          }
+                  width = 1)
       ),
       size = font_size/size_scale,
       label.size = 0,
       label.padding = unit(.2, "lines"),
-      # hjust = 1,
+      hjust = 0,
       fill = "#00000000"
     ) +
     scale_x_continuous(
